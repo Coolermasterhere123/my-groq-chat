@@ -1,0 +1,38 @@
+/* styles/Home.module.css */
+.main {
+  max-width: 800px;
+  margin: 2rem auto;
+  font-family: system-ui, sans-serif;
+  padding: 0 1rem;
+}
+.chatBox {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 300px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: #fafafa;
+  margin-bottom: 1rem;
+}
+.user {
+  text-align: right;
+  margin: 0.5rem 0;
+}
+.assistant {
+  text-align: left;
+  margin: 0.5rem 0;
+}
+.form {
+  display: flex;
+  gap: 0.5rem;
+}
+.input {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+.button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}
