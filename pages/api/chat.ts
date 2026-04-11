@@ -2,6 +2,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Groq from 'groq-sdk';
 
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+
 type ChatMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -12,9 +14,8 @@ interface ChatRequestBody {
   model?: string;
   temperature?: number;
   max_tokens?: number;
+  secret?: string;
 }
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,6 +27,11 @@ export default async function handler(
   }
 
   const body: ChatRequestBody = req.body;
+
+  if (body.secret !== process.env.API_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   if (!body?.messages || !Array.isArray(body.messages)) {
     return res.status(400).json({ error: '`messages` array is required' });
   }

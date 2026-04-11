@@ -1,38 +1,79 @@
-/* styles/Home.module.css */
 .main {
   max-width: 800px;
-  margin: 2rem auto;
-  font-family: system-ui, sans-serif;
-  padding: 0 1rem;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: sans-serif;
 }
+
+.title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
 .chatBox {
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 1rem;
-  min-height: 300px;
-  max-height: 60vh;
+  height: 500px;
   overflow-y: auto;
-  background: #fafafa;
   margin-bottom: 1rem;
+  background: #f9f9f9;
 }
-.user {
-  text-align: right;
+
+.userMsg {
   margin: 0.5rem 0;
+  padding: 0.5rem;
+  background: #e0f0ff;
+  border-radius: 6px;
 }
-.assistant {
-  text-align: left;
+
+.groqMsg {
   margin: 0.5rem 0;
+  padding: 0.5rem;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #eee;
 }
+
 .form {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
+
 .input {
   flex: 1;
   padding: 0.5rem;
   font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
 }
+
+.fileLabel {
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.fileName {
+  font-size: 0.8rem;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
 .button {
   padding: 0.5rem 1rem;
+  background: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
   font-size: 1rem;
+}
+
+.button:disabled {
+  background: #aaa;
 }
