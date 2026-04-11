@@ -19,3 +19,4 @@ out/
 *.log
 .idea/
 .vscode/
+.vercel

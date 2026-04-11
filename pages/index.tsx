@@ -1,7 +1,7 @@
 // pages/index.tsx
 import { useState, useRef, FormEvent } from 'react';
 import Head from 'next/head';
-import styles from '@/styles/Home.module.css';
+import styles from '@/styles/home.module.css';
 
 type Message = {
   role: 'system' | 'user' | 'assistant';
