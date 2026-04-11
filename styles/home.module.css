@@ -8,31 +8,83 @@
 .title {
   font-size: 1.5rem;
   margin-bottom: 1rem;
+  color: #111;
 }
 
 .chatBox {
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 1rem;
-  height: 500px;
+  height: 550px;
   overflow-y: auto;
   margin-bottom: 1rem;
   background: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .userMsg {
-  margin: 0.5rem 0;
-  padding: 0.5rem;
-  background: #e0f0ff;
-  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  background: #dbeafe;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+  color: #1e3a5f;
 }
 
 .groqMsg {
-  margin: 0.5rem 0;
-  padding: 0.5rem;
-  background: #fff;
-  border-radius: 6px;
-  border: 1px solid #eee;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  border-radius: 8px;
+  border-left: 4px solid #10b981;
+  border: 1px solid #e5e7eb;
+  color: #111;
+}
+
+.paragraph {
+  margin: 0.4rem 0;
+  line-height: 1.7;
+}
+
+.heading1 {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin: 0.75rem 0 0.25rem;
+  color: #111;
+}
+
+.heading2 {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin: 0.75rem 0 0.25rem;
+  color: #222;
+}
+
+.heading3 {
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 0.75rem 0 0.25rem;
+  color: #333;
+}
+
+.orderedList {
+  margin: 0.5rem 0 0.5rem 1.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.unorderedList {
+  margin: 0.5rem 0 0.5rem 1.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.listItem {
+  line-height: 1.6;
 }
 
 .form {
@@ -76,6 +128,8 @@
 
 .button:disabled {
   background: #aaa;
+}
+
 .codeBlock {
   background: #1e1e1e;
   border-radius: 6px;

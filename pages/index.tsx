@@ -32,7 +32,7 @@ function extractCodeBlocks(text: string): { lang: string; code: string; filename
   const regex = /```(\w+)?\n([\s\S]*?)```/g;
   const blocks: { lang: string; code: string; filename: string }[] = [];
   let match;
-  let count: Record<string, number> = {};
+  const count: Record<string, number> = {};
   while ((match = regex.exec(text)) !== null) {
     const lang = (match[1] || 'txt').toLowerCase();
     const code = match[2];
@@ -54,6 +54,94 @@ function downloadFile(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
+function renderInline(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} style={{ color: '#1a56db' }}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function renderText(text: string): React.ReactNode {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+
+    if (line === '') {
+      i++;
+      continue;
+    }
+
+    // Numbered list item
+    const numMatch = line.match(/^(\d+)\.\s+(.*)/);
+    if (numMatch) {
+      const items: React.ReactNode[] = [];
+      while (i < lines.length) {
+        const l = lines[i].trim();
+        const m = l.match(/^(\d+)\.\s+(.*)/);
+        if (m) {
+          items.push(<li key={i} className={styles.listItem}>{renderInline(m[2])}</li>);
+          i++;
+        } else if (l === '') {
+          i++;
+          break;
+        } else {
+          break;
+        }
+      }
+      elements.push(<ol key={`ol-${i}`} className={styles.orderedList}>{items}</ol>);
+      continue;
+    }
+
+    // Bullet list item
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      const items: React.ReactNode[] = [];
+      while (i < lines.length) {
+        const l = lines[i].trim();
+        if (l.startsWith('- ') || l.startsWith('* ')) {
+          items.push(<li key={i} className={styles.listItem}>{renderInline(l.slice(2))}</li>);
+          i++;
+        } else if (l === '') {
+          i++;
+          break;
+        } else {
+          break;
+        }
+      }
+      elements.push(<ul key={`ul-${i}`} className={styles.unorderedList}>{items}</ul>);
+      continue;
+    }
+
+    // Heading
+    if (line.startsWith('### ')) {
+      elements.push(<h3 key={i} className={styles.heading3}>{line.slice(4)}</h3>);
+      i++;
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      elements.push(<h2 key={i} className={styles.heading2}>{line.slice(3)}</h2>);
+      i++;
+      continue;
+    }
+    if (line.startsWith('# ')) {
+      elements.push(<h1 key={i} className={styles.heading1}>{line.slice(2)}</h1>);
+      i++;
+      continue;
+    }
+
+    // Regular paragraph
+    elements.push(<p key={i} className={styles.paragraph}>{renderInline(line)}</p>);
+    i++;
+  }
+
+  return <>{elements}</>;
+}
+
 function MessageContent({ content }: { content: string }) {
   const blocks = extractCodeBlocks(content);
   const parts = content.split(/```(?:\w+)?\n[\s\S]*?```/g);
@@ -62,7 +150,7 @@ function MessageContent({ content }: { content: string }) {
     <div>
       {parts.map((part, i) => (
         <span key={i}>
-          <span style={{ whiteSpace: 'pre-wrap' }}>{part}</span>
+          {renderText(part)}
           {blocks[i] && (
             <div className={styles.codeBlock}>
               <div className={styles.codeHeader}>
