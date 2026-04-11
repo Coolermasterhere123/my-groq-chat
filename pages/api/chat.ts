@@ -30,7 +30,7 @@ export default async function handler(
     return res.status(400).json({ error: '`messages` array is required' });
   }
 
-  const model = body.model ?? 'mixtral-8x7b-32768';
+  const model = body.model ?? 'llama3-8b-8192';
   try {
     const response = await groq.chat.completions.create({
       model,
