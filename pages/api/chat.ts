@@ -8,15 +8,7 @@ const API_KEYS = [
   process.env.GROQ_API_KEY_3!,
   process.env.GROQ_API_KEY_4!,
   process.env.GROQ_API_KEY_5!,
-];
-
-let currentKeyIndex = 0;
-
-function getNextClient(): Groq {
-  const key = API_KEYS[currentKeyIndex % API_KEYS.length];
-  currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
-  return new Groq({ apiKey: key });
-}
+].filter(Boolean);
 
 type ChatMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -52,9 +44,11 @@ export default async function handler(
 
   const model = body.model ?? 'llama-3.3-70b-versatile';
 
-  // Try each key until one works
-  for (let attempt = 0; attempt < API_KEYS.length; attempt++) {
-    const groq = getNextClient();
+  // Shuffle keys so every request starts from a different one
+  const shuffled = [...API_KEYS].sort(() => Math.random() - 0.5);
+
+  for (let attempt = 0; attempt < shuffled.length; attempt++) {
+    const groq = new Groq({ apiKey: shuffled[attempt] });
     try {
       const response = await groq.chat.completions.create({
         model,
@@ -66,9 +60,8 @@ export default async function handler(
       return res.status(200).json({ reply });
     } catch (err: any) {
       const isRateLimit = err.status === 429;
-      const isLastAttempt = attempt === API_KEYS.length - 1;
+      const isLastAttempt = attempt === shuffled.length - 1;
       if (isRateLimit && !isLastAttempt) {
-        // Try next key
         continue;
       }
       console.error('Groq error', err);
