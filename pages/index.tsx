@@ -10,6 +10,79 @@ type Message = {
 
 const API_SECRET = 'getyourownchatbot';
 
+const LANG_TO_EXT: Record<string, string> = {
+  html: 'html',
+  javascript: 'js',
+  js: 'js',
+  typescript: 'ts',
+  ts: 'ts',
+  python: 'py',
+  py: 'py',
+  css: 'css',
+  json: 'json',
+  bash: 'sh',
+  sh: 'sh',
+  markdown: 'md',
+  md: 'md',
+  txt: 'txt',
+  csv: 'csv',
+};
+
+function extractCodeBlocks(text: string): { lang: string; code: string; filename: string }[] {
+  const regex = /```(\w+)?\n([\s\S]*?)```/g;
+  const blocks: { lang: string; code: string; filename: string }[] = [];
+  let match;
+  let count: Record<string, number> = {};
+  while ((match = regex.exec(text)) !== null) {
+    const lang = (match[1] || 'txt').toLowerCase();
+    const code = match[2];
+    const ext = LANG_TO_EXT[lang] || lang;
+    count[ext] = (count[ext] || 0) + 1;
+    const filename = count[ext] === 1 ? `file.${ext}` : `file${count[ext]}.${ext}`;
+    blocks.push({ lang, code, filename });
+  }
+  return blocks;
+}
+
+function downloadFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function MessageContent({ content }: { content: string }) {
+  const blocks = extractCodeBlocks(content);
+  const parts = content.split(/```(?:\w+)?\n[\s\S]*?```/g);
+
+  return (
+    <div>
+      {parts.map((part, i) => (
+        <span key={i}>
+          <span style={{ whiteSpace: 'pre-wrap' }}>{part}</span>
+          {blocks[i] && (
+            <div className={styles.codeBlock}>
+              <div className={styles.codeHeader}>
+                <span className={styles.codeLang}>{blocks[i].lang}</span>
+                <button
+                  className={styles.downloadBtn}
+                  onClick={() => downloadFile(blocks[i].filename, blocks[i].code)}
+                >
+                  ⬇️ Download {blocks[i].filename}
+                </button>
+              </div>
+              <pre className={styles.codeContent}><code>{blocks[i].code}</code></pre>
+            </div>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'system', content: 'You are a helpful AI assistant.' },
@@ -76,7 +149,8 @@ export default function Home() {
         <div className={styles.chatBox}>
           {messages.filter(m => m.role !== 'system').map((m, i) => (
             <div key={i} className={m.role === 'user' ? styles.userMsg : styles.groqMsg}>
-              <strong>{m.role === 'user' ? 'You' : 'Groq'}:</strong> {m.content}
+              <strong>{m.role === 'user' ? 'You' : 'Groq'}:</strong>{' '}
+              {m.role === 'assistant' ? <MessageContent content={m.content} /> : m.content}
             </div>
           ))}
           {loading && <div className={styles.groqMsg}><strong>Groq:</strong> Thinking...</div>}
