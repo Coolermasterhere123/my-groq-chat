@@ -1,4 +1,3 @@
-@'
 // pages/api/chat.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Groq from 'groq-sdk';
@@ -46,4 +45,3 @@ export default async function handler(
     return res.status(err.status || 500).json({ error: err.message ?? 'Internal Server Error' });
   }
 }
-'@ | Set-Content pages\api\chat.ts
