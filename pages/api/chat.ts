@@ -1,6 +1,6 @@
 // pages/api/chat.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import Groq from 'groq';
+import { Groq } from 'groq';
 
 // -------------------------------------------------------------------
 // 1️⃣ Initialise Groq client – the key comes from Vercel / .env.local
