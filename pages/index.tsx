@@ -52,11 +52,48 @@ function downloadFile(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
+function makeSearchLink(text: string, key: number): React.ReactNode {
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
+  return (
+    
+      key={key}
+      href={searchUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: '#1a56db',
+        fontWeight: 'bold',
+        textDecoration: 'underline',
+        cursor: 'pointer',
+      }}
+    >
+      {text} 🔗
+    </a>
+  );
+}
+
 function renderInline(text: string): React.ReactNode[] {
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} style={{ color: '#1a56db' }}>{part.slice(2, -2)}</strong>;
+      const label = part.slice(2, -2);
+      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(label)}`;
+      return (
+        
+          key={i}
+          href={searchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#1a56db',
+            fontWeight: 'bold',
+            textDecoration: 'underline',
+            cursor: 'pointer',
+          }}
+        >
+          {label} 🔗
+        </a>
+      );
     }
     return <span key={i}>{part}</span>;
   });
@@ -69,25 +106,38 @@ function renderText(text: string): React.ReactNode {
   while (i < lines.length) {
     const line = lines[i].trim();
     if (line === '') { i++; continue; }
+
     const numMatch = line.match(/^(\d+)\.\s+(.*)/);
     if (numMatch) {
       const items: React.ReactNode[] = [];
       while (i < lines.length) {
         const l = lines[i].trim();
         const m = l.match(/^(\d+)\.\s+(.*)/);
-        if (m) { items.push(<li key={i} className={styles.listItem}>{renderInline(m[2])}</li>); i++; }
-        else if (l === '') { i++; break; }
+        if (m) {
+          items.push(
+            <li key={i} className={styles.listItem}>
+              {makeSearchLink(m[2].replace(/\*\*(.*?)\*\*/g, '$1'), i)}
+            </li>
+          );
+          i++;
+        } else if (l === '') { i++; break; }
         else break;
       }
       elements.push(<ol key={`ol-${i}`} className={styles.orderedList}>{items}</ol>);
       continue;
     }
+
     if (line.startsWith('- ') || line.startsWith('* ')) {
       const items: React.ReactNode[] = [];
       while (i < lines.length) {
         const l = lines[i].trim();
         if (l.startsWith('- ') || l.startsWith('* ')) {
-          items.push(<li key={i} className={styles.listItem}>{renderInline(l.slice(2))}</li>);
+          const txt = l.slice(2).replace(/\*\*(.*?)\*\*/g, '$1');
+          items.push(
+            <li key={i} className={styles.listItem}>
+              {makeSearchLink(txt, i)}
+            </li>
+          );
           i++;
         } else if (l === '') { i++; break; }
         else break;
@@ -95,9 +145,23 @@ function renderText(text: string): React.ReactNode {
       elements.push(<ul key={`ul-${i}`} className={styles.unorderedList}>{items}</ul>);
       continue;
     }
-    if (line.startsWith('### ')) { elements.push(<h3 key={i} className={styles.heading3}>{line.slice(4)}</h3>); i++; continue; }
-    if (line.startsWith('## ')) { elements.push(<h2 key={i} className={styles.heading2}>{line.slice(3)}</h2>); i++; continue; }
-    if (line.startsWith('# ')) { elements.push(<h1 key={i} className={styles.heading1}>{line.slice(2)}</h1>); i++; continue; }
+
+    if (line.startsWith('### ')) {
+      const txt = line.slice(4).replace(/\*\*(.*?)\*\*/g, '$1');
+      elements.push(<h3 key={i} className={styles.heading3}>{makeSearchLink(txt, i)}</h3>);
+      i++; continue;
+    }
+    if (line.startsWith('## ')) {
+      const txt = line.slice(3).replace(/\*\*(.*?)\*\*/g, '$1');
+      elements.push(<h2 key={i} className={styles.heading2}>{makeSearchLink(txt, i)}</h2>);
+      i++; continue;
+    }
+    if (line.startsWith('# ')) {
+      const txt = line.slice(2).replace(/\*\*(.*?)\*\*/g, '$1');
+      elements.push(<h1 key={i} className={styles.heading1}>{makeSearchLink(txt, i)}</h1>);
+      i++; continue;
+    }
+
     elements.push(<p key={i} className={styles.paragraph}>{renderInline(line)}</p>);
     i++;
   }
@@ -134,11 +198,11 @@ function MessageContent({ content }: { content: string }) {
 
 function getSendButtonColor(tokensUsed: number): string {
   const remaining = DAILY_LIMIT - tokensUsed;
-  if (remaining >= 250000) return '#10b981'; // green
-  if (remaining >= 200000) return '#f97316'; // orange
-  if (remaining >= 100000) return '#eab308'; // yellow
-  if (remaining >= 50000) return '#ef4444';  // red
-  return '#7f1d1d'; // dark red - almost gone
+  if (remaining >= 250000) return '#10b981';
+  if (remaining >= 200000) return '#f97316';
+  if (remaining >= 100000) return '#eab308';
+  if (remaining >= 50000) return '#ef4444';
+  return '#7f1d1d';
 }
 
 function TokenPanel({ sessionTokens, lastInfo, date }: {
