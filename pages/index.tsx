@@ -132,6 +132,15 @@ function MessageContent({ content }: { content: string }) {
   );
 }
 
+function getSendButtonColor(tokensUsed: number): string {
+  const remaining = DAILY_LIMIT - tokensUsed;
+  if (remaining >= 250000) return '#10b981'; // green
+  if (remaining >= 200000) return '#f97316'; // orange
+  if (remaining >= 100000) return '#eab308'; // yellow
+  if (remaining >= 50000) return '#ef4444';  // red
+  return '#7f1d1d'; // dark red - almost gone
+}
+
 function TokenPanel({ sessionTokens, lastInfo, date }: {
   sessionTokens: number;
   lastInfo: TokenInfo | null;
@@ -139,25 +148,26 @@ function TokenPanel({ sessionTokens, lastInfo, date }: {
 }) {
   const remaining = DAILY_LIMIT - sessionTokens;
   const pct = Math.min((sessionTokens / DAILY_LIMIT) * 100, 100);
-  const color = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#10b981';
 
   if (remaining > 50000) return null;
 
   return (
     <div className={styles.tokenPanel}>
-      <div className={styles.tokenTitle}>⚠️ Token Warning {date ? `(${date})` : ''}</div>
+      <div className={styles.tokenTitle}>🚨 WARNING: Tokens Almost Depleted {date ? `(${date})` : ''}</div>
       <div className={styles.tokenBar}>
-        <div className={styles.tokenFill} style={{ width: `${pct}%`, background: color }} />
+        <div className={styles.tokenFill} style={{ width: `${pct}%`, background: '#ef4444' }} />
       </div>
       <div className={styles.tokenStats}>
-        <span style={{ color, fontWeight: 'bold' }}>{remaining.toLocaleString()} tokens remaining today</span>
+        <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '1rem' }}>
+          Only {remaining.toLocaleString()} tokens remaining today!
+        </span>
       </div>
       {lastInfo && (
         <div className={styles.tokenDetail}>
           Last request: Key #{lastInfo.keyIndex} · {lastInfo.tokensUsed} tokens used
         </div>
       )}
-      {pct > 90 && <div className={styles.tokenWarning}>🚨 Critical! Almost out of tokens!</div>}
+      <div className={styles.tokenWarning}>🚨 Tokens will reset tomorrow. Use sparingly!</div>
     </div>
   );
 }
@@ -282,7 +292,12 @@ export default function Home() {
             />
           </label>
           {fileName && <span className={styles.fileName}>📄 {fileName}</span>}
-          <button className={styles.button} type="submit" disabled={loading}>Send</button>
+          <button
+            className={styles.button}
+            type="submit"
+            disabled={loading}
+            style={{ background: getSendButtonColor(sessionTokens) }}
+          >Send</button>
         </form>
       </main>
     </>
