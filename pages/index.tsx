@@ -52,7 +52,7 @@ function downloadFile(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
-function makeSearchLink(text: string, key: number): React.ReactNode {
+function makeSearchLink(text: string, key: string | number): React.ReactNode {
   const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
   return (
     
