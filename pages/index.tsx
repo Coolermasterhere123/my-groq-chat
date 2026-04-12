@@ -8,27 +8,23 @@ type Message = {
   content: string;
 };
 
-const API_SECRET = 'getyourownchatbot';
-
-const LANG_TO_EXT: Record<string, string> = {
-  html: 'html',
-  javascript: 'js',
-  js: 'js',
-  typescript: 'ts',
-  ts: 'ts',
-  python: 'py',
-  py: 'py',
-  css: 'css',
-  json: 'json',
-  bash: 'sh',
-  sh: 'sh',
-  markdown: 'md',
-  md: 'md',
-  txt: 'txt',
-  csv: 'csv',
+type TokenInfo = {
+  keyIndex: number;
+  tokensUsed: number;
+  promptTokens: number;
+  completionTokens: number;
 };
 
-function extractCodeBlocks(text: string): { lang: string; code: string; filename: string }[] {
+const API_SECRET = 'getyourownchatbot';
+const DAILY_LIMIT = 100000;
+
+const LANG_TO_EXT: Record<string, string> = {
+  html: 'html', javascript: 'js', js: 'js', typescript: 'ts', ts: 'ts',
+  python: 'py', py: 'py', css: 'css', json: 'json', bash: 'sh', sh: 'sh',
+  markdown: 'md', md: 'md', txt: 'txt', csv: 'csv',
+};
+
+function extractCodeBlocks(text: string) {
   const regex = /```(\w+)?\n([\s\S]*?)```/g;
   const blocks: { lang: string; code: string; filename: string }[] = [];
   let match;
@@ -68,84 +64,45 @@ function renderText(text: string): React.ReactNode {
   const lines = text.split('\n');
   const elements: React.ReactNode[] = [];
   let i = 0;
-
   while (i < lines.length) {
     const line = lines[i].trim();
-
-    if (line === '') {
-      i++;
-      continue;
-    }
-
-    // Numbered list item
+    if (line === '') { i++; continue; }
     const numMatch = line.match(/^(\d+)\.\s+(.*)/);
     if (numMatch) {
       const items: React.ReactNode[] = [];
       while (i < lines.length) {
         const l = lines[i].trim();
         const m = l.match(/^(\d+)\.\s+(.*)/);
-        if (m) {
-          items.push(<li key={i} className={styles.listItem}>{renderInline(m[2])}</li>);
-          i++;
-        } else if (l === '') {
-          i++;
-          break;
-        } else {
-          break;
-        }
+        if (m) { items.push(<li key={i} className={styles.listItem}>{renderInline(m[2])}</li>); i++; }
+        else if (l === '') { i++; break; }
+        else break;
       }
       elements.push(<ol key={`ol-${i}`} className={styles.orderedList}>{items}</ol>);
       continue;
     }
-
-    // Bullet list item
     if (line.startsWith('- ') || line.startsWith('* ')) {
       const items: React.ReactNode[] = [];
       while (i < lines.length) {
         const l = lines[i].trim();
-        if (l.startsWith('- ') || l.startsWith('* ')) {
-          items.push(<li key={i} className={styles.listItem}>{renderInline(l.slice(2))}</li>);
-          i++;
-        } else if (l === '') {
-          i++;
-          break;
-        } else {
-          break;
-        }
+        if (l.startsWith('- ') || l.startsWith('* ')) { items.push(<li key={i} className={styles.listItem}>{renderInline(l.slice(2))}</li>); i++; }
+        else if (l === '') { i++; break; }
+        else break;
       }
       elements.push(<ul key={`ul-${i}`} className={styles.unorderedList}>{items}</ul>);
       continue;
     }
-
-    // Heading
-    if (line.startsWith('### ')) {
-      elements.push(<h3 key={i} className={styles.heading3}>{line.slice(4)}</h3>);
-      i++;
-      continue;
-    }
-    if (line.startsWith('## ')) {
-      elements.push(<h2 key={i} className={styles.heading2}>{line.slice(3)}</h2>);
-      i++;
-      continue;
-    }
-    if (line.startsWith('# ')) {
-      elements.push(<h1 key={i} className={styles.heading1}>{line.slice(2)}</h1>);
-      i++;
-      continue;
-    }
-
-    // Regular paragraph
+    if (line.startsWith('### ')) { elements.push(<h3 key={i} className={styles.heading3}>{line.slice(4)}</h3>); i++; continue; }
+    if (line.startsWith('## ')) { elements.push(<h2 key={i} className={styles.heading2}>{line.slice(3)}</h2>); i++; continue; }
+    if (line.startsWith('# ')) { elements.push(<h1 key={i} className={styles.heading1}>{line.slice(2)}</h1>); i++; continue; }
     elements.push(<p key={i} className={styles.paragraph}>{renderInline(line)}</p>);
     i++;
   }
-
   return <>{elements}</>;
 }
 
 function MessageContent({ content }: { content: string }) {
   const blocks = extractCodeBlocks(content);
   const parts = content.split(/```(?:\w+)?\n[\s\S]*?```/g);
-
   return (
     <div>
       {parts.map((part, i) => (
@@ -155,10 +112,7 @@ function MessageContent({ content }: { content: string }) {
             <div className={styles.codeBlock}>
               <div className={styles.codeHeader}>
                 <span className={styles.codeLang}>{blocks[i].lang}</span>
-                <button
-                  className={styles.downloadBtn}
-                  onClick={() => downloadFile(blocks[i].filename, blocks[i].code)}
-                >
+                <button className={styles.downloadBtn} onClick={() => downloadFile(blocks[i].filename, blocks[i].code)}>
                   ⬇️ Download {blocks[i].filename}
                 </button>
               </div>
@@ -171,6 +125,31 @@ function MessageContent({ content }: { content: string }) {
   );
 }
 
+function TokenPanel({ sessionTokens, lastInfo }: { sessionTokens: number; lastInfo: TokenInfo | null }) {
+  const pct = Math.min((sessionTokens / DAILY_LIMIT) * 100, 100);
+  const color = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#10b981';
+
+  return (
+    <div className={styles.tokenPanel}>
+      <div className={styles.tokenTitle}>🔑 Token Usage This Session</div>
+      <div className={styles.tokenBar}>
+        <div className={styles.tokenFill} style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <div className={styles.tokenStats}>
+        <span>{sessionTokens.toLocaleString()} tokens used</span>
+        <span>{(DAILY_LIMIT - sessionTokens).toLocaleString()} remaining</span>
+      </div>
+      {lastInfo && (
+        <div className={styles.tokenDetail}>
+          Last request: Key #{lastInfo.keyIndex} · {lastInfo.tokensUsed} tokens
+          (prompt: {lastInfo.promptTokens} + response: {lastInfo.completionTokens})
+        </div>
+      )}
+      {pct > 80 && <div className={styles.tokenWarning}>⚠️ Running low on tokens!</div>}
+    </div>
+  );
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'system', content: 'You are a helpful AI assistant.' },
@@ -179,6 +158,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [sessionTokens, setSessionTokens] = useState(0);
+  const [lastTokenInfo, setLastTokenInfo] = useState<TokenInfo | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,9 +167,7 @@ export default function Home() {
     if (!file) return;
     setFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setFileContent(ev.target?.result as string);
-    };
+    reader.onload = (ev) => setFileContent(ev.target?.result as string);
     reader.readAsText(file);
   };
 
@@ -197,9 +176,7 @@ export default function Home() {
     if (!input.trim() && !fileContent) return;
 
     let userContent = input.trim();
-    if (fileContent) {
-      userContent += `\n\n--- Contents of ${fileName} ---\n${fileContent}`;
-    }
+    if (fileContent) userContent += `\n\n--- Contents of ${fileName} ---\n${fileContent}`;
 
     const userMessage: Message = { role: 'user', content: userContent };
     const updated = [...messages, userMessage];
@@ -218,9 +195,13 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.error) {
-        setMessages([...updated, { role: 'assistant', content: `⚠️ Error: ${data.error}` }]);
+        setMessages([...updated, { role: 'assistant', content: `⚠️ Error: ${data.error}${data.resetIn ? ` Try again in ${data.resetIn}` : ''}` }]);
       } else {
         setMessages([...updated, { role: 'assistant', content: data.reply }]);
+        if (data.tokenInfo) {
+          setSessionTokens(prev => prev + data.tokenInfo.tokensUsed);
+          setLastTokenInfo(data.tokenInfo);
+        }
       }
     } catch (err) {
       setMessages([...updated, { role: 'assistant', content: '⚠️ Network error. Please try again.' }]);
@@ -234,6 +215,7 @@ export default function Home() {
       <Head><title>Groq Chat</title></Head>
       <main className={styles.main}>
         <h1 className={styles.title}>Groq Chat Demo (Vercel)</h1>
+        <TokenPanel sessionTokens={sessionTokens} lastInfo={lastTokenInfo} />
         <div className={styles.chatBox}>
           {messages.filter(m => m.role !== 'system').map((m, i) => (
             <div key={i} className={m.role === 'user' ? styles.userMsg : styles.groqMsg}>
@@ -253,13 +235,7 @@ export default function Home() {
           />
           <label className={styles.fileLabel}>
             📎
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".txt,.csv,.html,.py,.js,.ts,.json,.md"
-              onChange={handleFile}
-              style={{ display: 'none' }}
-            />
+            <input ref={fileRef} type="file" accept=".txt,.csv,.html,.py,.js,.ts,.json,.md" onChange={handleFile} style={{ display: 'none' }} />
           </label>
           {fileName && <span className={styles.fileName}>📄 {fileName}</span>}
           <button className={styles.button} type="submit" disabled={loading}>Send</button>
