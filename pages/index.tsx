@@ -1,5 +1,5 @@
 // pages/index.tsx
-import { useState, useRef, FormEvent } from 'react';
+import { useState, useRef, useEffect, FormEvent } from 'react';
 import Head from 'next/head';
 import styles from '../styles/home.module.css';
 
@@ -13,10 +13,12 @@ type TokenInfo = {
   tokensUsed: number;
   promptTokens: number;
   completionTokens: number;
+  totalToday: number;
+  date: string;
 };
 
 const API_SECRET = 'getyourownchatbot';
-const DAILY_LIMIT = 100000;
+const DAILY_LIMIT = 300000;
 
 const LANG_TO_EXT: Record<string, string> = {
   html: 'html', javascript: 'js', js: 'js', typescript: 'ts', ts: 'ts',
@@ -84,8 +86,10 @@ function renderText(text: string): React.ReactNode {
       const items: React.ReactNode[] = [];
       while (i < lines.length) {
         const l = lines[i].trim();
-        if (l.startsWith('- ') || l.startsWith('* ')) { items.push(<li key={i} className={styles.listItem}>{renderInline(l.slice(2))}</li>); i++; }
-        else if (l === '') { i++; break; }
+        if (l.startsWith('- ') || l.startsWith('* ')) {
+          items.push(<li key={i} className={styles.listItem}>{renderInline(l.slice(2))}</li>);
+          i++;
+        } else if (l === '') { i++; break; }
         else break;
       }
       elements.push(<ul key={`ul-${i}`} className={styles.unorderedList}>{items}</ul>);
@@ -112,7 +116,10 @@ function MessageContent({ content }: { content: string }) {
             <div className={styles.codeBlock}>
               <div className={styles.codeHeader}>
                 <span className={styles.codeLang}>{blocks[i].lang}</span>
-                <button className={styles.downloadBtn} onClick={() => downloadFile(blocks[i].filename, blocks[i].code)}>
+                <button
+                  className={styles.downloadBtn}
+                  onClick={() => downloadFile(blocks[i].filename, blocks[i].code)}
+                >
                   ⬇️ Download {blocks[i].filename}
                 </button>
               </div>
@@ -125,19 +132,23 @@ function MessageContent({ content }: { content: string }) {
   );
 }
 
-function TokenPanel({ sessionTokens, lastInfo }: { sessionTokens: number; lastInfo: TokenInfo | null }) {
+function TokenPanel({ sessionTokens, lastInfo, date }: {
+  sessionTokens: number;
+  lastInfo: TokenInfo | null;
+  date: string;
+}) {
   const pct = Math.min((sessionTokens / DAILY_LIMIT) * 100, 100);
   const color = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#10b981';
 
   return (
     <div className={styles.tokenPanel}>
-      <div className={styles.tokenTitle}>🔑 Token Usage This Session</div>
+      <div className={styles.tokenTitle}>🔑 Token Usage Today {date ? `(${date})` : ''}</div>
       <div className={styles.tokenBar}>
         <div className={styles.tokenFill} style={{ width: `${pct}%`, background: color }} />
       </div>
       <div className={styles.tokenStats}>
-        <span>{sessionTokens.toLocaleString()} tokens used</span>
-        <span>{(DAILY_LIMIT - sessionTokens).toLocaleString()} remaining</span>
+        <span>{sessionTokens.toLocaleString()} / {DAILY_LIMIT.toLocaleString()} tokens used</span>
+        <span style={{ color }}>{(DAILY_LIMIT - sessionTokens).toLocaleString()} remaining</span>
       </div>
       {lastInfo && (
         <div className={styles.tokenDetail}>
@@ -159,8 +170,19 @@ export default function Home() {
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [sessionTokens, setSessionTokens] = useState(0);
+  const [tokenDate, setTokenDate] = useState('');
   const [lastTokenInfo, setLastTokenInfo] = useState<TokenInfo | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api/tokens')
+      .then(r => r.json())
+      .then(data => {
+        setSessionTokens(data.total ?? 0);
+        setTokenDate(data.date ?? '');
+      })
+      .catch(() => {});
+  }, []);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -195,12 +217,16 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.error) {
-        setMessages([...updated, { role: 'assistant', content: `⚠️ Error: ${data.error}${data.resetIn ? ` Try again in ${data.resetIn}` : ''}` }]);
+        setMessages([...updated, {
+          role: 'assistant',
+          content: `⚠️ Error: ${data.error}${data.resetIn ? ` Try again in ${data.resetIn}` : ''}`
+        }]);
       } else {
         setMessages([...updated, { role: 'assistant', content: data.reply }]);
         if (data.tokenInfo) {
-          setSessionTokens(prev => prev + data.tokenInfo.tokensUsed);
+          setSessionTokens(data.tokenInfo.totalToday);
           setLastTokenInfo(data.tokenInfo);
+          setTokenDate(data.tokenInfo.date);
         }
       }
     } catch (err) {
@@ -215,7 +241,11 @@ export default function Home() {
       <Head><title>Groq Chat</title></Head>
       <main className={styles.main}>
         <h1 className={styles.title}>Groq Chat Demo (Vercel)</h1>
-        <TokenPanel sessionTokens={sessionTokens} lastInfo={lastTokenInfo} />
+        <TokenPanel
+          sessionTokens={sessionTokens}
+          lastInfo={lastTokenInfo}
+          date={tokenDate}
+        />
         <div className={styles.chatBox}>
           {messages.filter(m => m.role !== 'system').map((m, i) => (
             <div key={i} className={m.role === 'user' ? styles.userMsg : styles.groqMsg}>
@@ -235,7 +265,13 @@ export default function Home() {
           />
           <label className={styles.fileLabel}>
             📎
-            <input ref={fileRef} type="file" accept=".txt,.csv,.html,.py,.js,.ts,.json,.md" onChange={handleFile} style={{ display: 'none' }} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".txt,.csv,.html,.py,.js,.ts,.json,.md"
+              onChange={handleFile}
+              style={{ display: 'none' }}
+            />
           </label>
           {fileName && <span className={styles.fileName}>📄 {fileName}</span>}
           <button className={styles.button} type="submit" disabled={loading}>Send</button>

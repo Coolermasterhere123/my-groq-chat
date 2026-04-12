@@ -1,6 +1,12 @@
 // pages/api/chat.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import Groq from 'groq-sdk';
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 const API_KEYS = [
   process.env.GROQ_API_KEY_1!,
@@ -58,28 +64,31 @@ export default async function handler(
 
       const reply = response.choices[0].message.content;
       const usage = response.usage;
+      const tokensUsed = usage?.total_tokens ?? 0;
 
-      // Extract rate limit info from response headers via x_groq field
+      // Save to Redis - increment global token counter
+      const today = new Date().toISOString().split('T')[0];
+      const redisKey = `groq_tokens_${today}`;
+      const newTotal = await redis.incrby(redisKey, tokensUsed);
+      // Set expiry to 2 days so it auto cleans up
+      await redis.expire(redisKey, 172800);
+
       const tokenInfo = {
         keyIndex: index,
-        tokensUsed: usage?.total_tokens ?? 0,
+        tokensUsed,
         promptTokens: usage?.prompt_tokens ?? 0,
         completionTokens: usage?.completion_tokens ?? 0,
+        totalToday: newTotal,
+        date: today,
       };
 
       return res.status(200).json({ reply, tokenInfo });
     } catch (err: any) {
       const isRateLimit = err.status === 429;
       const isLastAttempt = attempt === shuffled.length - 1;
-
-      if (isRateLimit && !isLastAttempt) {
-        continue;
-      }
-
-      // Parse reset time from error message if available
+      if (isRateLimit && !isLastAttempt) continue;
       const resetMatch = err.message?.match(/try again in (\S+)/i);
       const resetIn = resetMatch ? resetMatch[1] : null;
-
       console.error('Groq error', err);
       return res.status(err.status || 500).json({
         error: err.message ?? 'Internal Server Error',
