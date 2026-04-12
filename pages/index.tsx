@@ -75,12 +75,14 @@ function makeSearchLink(text: string, key: string | number): React.ReactNode {
 
 function renderInline(text: string): React.ReactNode[] {
   const parts = text.split(/(\*\*.*?\*\*)/g);
+
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       const label = part.slice(2, -2);
       const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(label)}`;
+
       return (
-        
+        <a
           key={i}
           href={searchUrl}
           target="_blank"
@@ -96,6 +98,8 @@ function renderInline(text: string): React.ReactNode[] {
         </a>
       );
     }
+
+    // Normal text parts
     return <span key={i}>{part}</span>;
   });
 }
