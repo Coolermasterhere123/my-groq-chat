@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@upstash/redis": "^1.37.0",
     "groq-sdk": "latest",
     "next": "^16.2.3",
     "react": "18.3.1",
