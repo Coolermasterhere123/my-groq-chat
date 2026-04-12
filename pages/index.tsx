@@ -137,26 +137,27 @@ function TokenPanel({ sessionTokens, lastInfo, date }: {
   lastInfo: TokenInfo | null;
   date: string;
 }) {
+  const remaining = DAILY_LIMIT - sessionTokens;
   const pct = Math.min((sessionTokens / DAILY_LIMIT) * 100, 100);
   const color = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#10b981';
 
+  if (remaining > 50000) return null;
+
   return (
     <div className={styles.tokenPanel}>
-      <div className={styles.tokenTitle}>🔑 Token Usage Today {date ? `(${date})` : ''}</div>
+      <div className={styles.tokenTitle}>⚠️ Token Warning {date ? `(${date})` : ''}</div>
       <div className={styles.tokenBar}>
         <div className={styles.tokenFill} style={{ width: `${pct}%`, background: color }} />
       </div>
       <div className={styles.tokenStats}>
-        <span>{sessionTokens.toLocaleString()} / {DAILY_LIMIT.toLocaleString()} tokens used</span>
-        <span style={{ color }}>{(DAILY_LIMIT - sessionTokens).toLocaleString()} remaining</span>
+        <span style={{ color, fontWeight: 'bold' }}>{remaining.toLocaleString()} tokens remaining today</span>
       </div>
       {lastInfo && (
         <div className={styles.tokenDetail}>
-          Last request: Key #{lastInfo.keyIndex} · {lastInfo.tokensUsed} tokens
-          (prompt: {lastInfo.promptTokens} + response: {lastInfo.completionTokens})
+          Last request: Key #{lastInfo.keyIndex} · {lastInfo.tokensUsed} tokens used
         </div>
       )}
-      {pct > 80 && <div className={styles.tokenWarning}>⚠️ Running low on tokens!</div>}
+      {pct > 90 && <div className={styles.tokenWarning}>🚨 Critical! Almost out of tokens!</div>}
     </div>
   );
 }
@@ -256,12 +257,19 @@ export default function Home() {
           {loading && <div className={styles.groqMsg}><strong>Groq:</strong> Thinking...</div>}
         </div>
         <form onSubmit={handleSubmit} className={styles.form}>
-          <input
+          <textarea
             className={styles.input}
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="Type a message..."
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e as any);
+              }
+            }}
+            placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
             disabled={loading}
+            rows={3}
           />
           <label className={styles.fileLabel}>
             📎
