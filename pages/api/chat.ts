@@ -6,8 +6,6 @@ const API_KEYS = [
   process.env.GROQ_API_KEY_1!,
   process.env.GROQ_API_KEY_2!,
   process.env.GROQ_API_KEY_3!,
-  process.env.GROQ_API_KEY_4!,
-  process.env.GROQ_API_KEY_5!,
 ].filter(Boolean);
 
 type ChatMessage = {
@@ -42,9 +40,8 @@ export default async function handler(
     return res.status(400).json({ error: '`messages` array is required' });
   }
 
-  const model = body.model ?? 'llama-3.3-70b-versatile';
+  const model = body.model ?? 'llama-3.1-8b-instant';
 
-  // Shuffle keys so every request starts from a different one
   const shuffled = [...API_KEYS].sort(() => Math.random() - 0.5);
 
   for (let attempt = 0; attempt < shuffled.length; attempt++) {
