@@ -319,8 +319,11 @@ export default function Home() {
   return (
     <>
       <Head><title>Groq Chat</title></Head>
+      <link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#3b82f6" />
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       <main className={styles.main}>
-        <h1 className={styles.title}>Groq Chat Demo (Vercel)</h1>
+        <h1 className={styles.title}>Groq Chat (Vercel)</h1>
         <TokenPanel
           sessionTokens={sessionTokens}
           lastInfo={lastTokenInfo}
